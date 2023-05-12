@@ -5,7 +5,7 @@ from pygame import mixer
 
 
 
-SCREEN_TITLE = "Open Tetris"
+SCREEN_TITLE = "Sky Tetris"
 
 image = arcade.load_texture("logo.png")
 
@@ -180,7 +180,7 @@ class Tetris(arcade.Window):
 
     def set_user(self):
         # Set the user name
-        name = 'your'
+        name = input('Type your name:')
         self.player = name
 
     def setup(self):
@@ -314,7 +314,7 @@ class Tetris(arcade.Window):
         arcade.start_render() # Initialize screen rendering before we start
         self.board_sprite_list.draw()
         
-        arcade.draw_text(str(self.player)+" Score: "+ str(self.score), 0, SCREEN_H-700, arcade.color.WHITE, 20) # Draw score text
+        arcade.draw_text(str(self.player)+"'s Score: "+ str(self.score), 0, SCREEN_H-700, arcade.color.WHITE, 20) # Draw score text
         self.draw_grid(self.tetramino, self.x_tetramino, self.y_tetramino)
         if self.game_over:
             arcade.draw_text("Game Over!", 190, SCREEN_H-300, arcade.color.CYAN, 50) # Draw score text
