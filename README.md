@@ -6,11 +6,15 @@ The original Tetris game with reverse gravity.
 Designed for Python and played using keyboard arrow key controls.
 #
 
-Hight speed: if self.frame_count % 11 == 0: 
+Hight speed: 
 
-Low speed: if self.frame_count % 20 == 0: 
+if self.frame_count % 11 == 0: 
+
+Low speed: 
+
+if self.frame_count % 20 == 0: 
 #
-Copyright (c) 2022, Sourceduty
+Copyright (c) 2023, Sourceduty
 
 https://www.sourceduty.com/games
 
