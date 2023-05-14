@@ -326,7 +326,7 @@ class Tetris(arcade.Window):
 
             # Draw some text using your custom font
             arcade.draw_texture_rectangle(SCREEN_W/2+10,550, 500, 300, image, 0)
-            arcade.draw_text("Press any button to play", 130, SCREEN_H-350, arcade.color.CYAN, 30) # Draw score text
+            arcade.draw_text("PRESS ANY BUTTON", 150, SCREEN_H-350, arcade.color.CYAN, 30) # Draw score text
 
 
 def main():
