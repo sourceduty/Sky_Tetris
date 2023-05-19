@@ -19,6 +19,4 @@ Copyright (c) 2023, Sourceduty
 
 https://www.sourceduty.com/games
 
-Created on May 12, 2023
-
 ℹ️ This software is free and open-source; anyone can redistribute it and/or modify it.
