@@ -7,13 +7,10 @@
 Designed for Python and played using keyboard arrow key controls.
 #
 
-🛠️ High speed: 
+![Mobile App](https://github.com/sourceduty/SkyTetris/assets/123030236/13c40925-6087-4138-991d-1ae0a8e2f4cc)
 
-if self.frame_count % 11 == 0: 
+Mobile app for Android 13.
 
-🛠️ Low speed: 
-
-if self.frame_count % 20 == 0: 
 #
 Copyright (c) 2023, Sourceduty
 
