@@ -11,6 +11,8 @@ Designed for Python and played using keyboard arrow key controls.
 
 Mobile app for Android 13.
 
+https://1drv.ms/u/s!AumZxqj6wFkfhxSi1JbL7tJmhDCR?e=Rp0Jnr
+
 #
 Copyright (c) 2023, Sourceduty
 
