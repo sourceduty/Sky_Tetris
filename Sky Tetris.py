@@ -1,9 +1,8 @@
+ℹ️ This software is free and open-source; anyone can redistribute it and/or modify it.
+
 import PIL #used to create textures for the game
 import arcade #used to create the game
 from pygame import mixer
-
-
-
 
 SCREEN_TITLE = "Sky Tetris"
 
@@ -337,4 +336,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
