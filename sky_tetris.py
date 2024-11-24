@@ -1,338 +1,337 @@
 # ℹ️ This software is free and open-source; anyone can redistribute it and/or modify it.
 
-import PIL #used to create textures for the game
-import arcade #used to create the game
+import random
 from pygame import mixer
 
+import arcade
+from PIL import Image
+
+# Constants
 SCREEN_TITLE = "Sky Tetris"
 
-image = arcade.load_texture("logo.png")
-
-# Initialize music mixer at the beginning
-mixer.init() 
-MUSIC_VOLUME = 0.5
-
-# Game board (20x20 cells) customizable
+# Board settings
 ROWS = 20
 COLUMNS = 20
+CELL_WIDTH = 30
+CELL_HEIGHT = 30
+MARGIN = 5
 
-# Setup each cell size [width x height]
-WIDTH = 30
-HEIGHT = 30
-MARGIN = 5 # distance between cells
+# Calculate screen dimensions
+SCREEN_WIDTH = (CELL_WIDTH + MARGIN) * COLUMNS + MARGIN
+SCREEN_HEIGHT = (CELL_HEIGHT + MARGIN) * ROWS + MARGIN
 
-# Calculate screen width and height
-SCREEN_W = (WIDTH + MARGIN) * COLUMNS + MARGIN
-SCREEN_H = (HEIGHT + MARGIN) * ROWS + MARGIN
-
-# Define colors and shapes of the tetraminos
-colors = [
+# Colors (RGB tuples)
+COLORS = [
     (0, 0, 0),
-    (0, 255, 0), 
-    (255, 0, 0), 
-    (0, 255, 255), 
-    (255, 255, 0), 
-    (255, 165, 0), 
-    (0, 0, 255), 
+    (0, 255, 0),
+    (255, 0, 0),
+    (0, 255, 255),
+    (255, 255, 0),
+    (255, 165, 0),
+    (0, 0, 255),
     (255, 0, 255)
 ]
 
-shapes = [
-    #S Shape
+# Tetramino shapes
+SHAPES = [
+    # S Shape
     [[0, 1, 1],
      [1, 1, 0]],
 
-    #Z Shape
+    # Z Shape
     [[2, 2, 0],
      [0, 2, 2]],
-    
-    #I Shape
+
+    # I Shape
     [[3, 3, 3, 3]],
 
-    #O Shape
+    # O Shape
     [[4, 4],
      [4, 4]],
 
-    #J Shape
+    # J Shape
     [[0, 0, 5],
-    [5, 5, 5]],
+     [5, 5, 5]],
 
-    #L Shape
+    # L Shape
     [[6, 0, 0],
      [6, 6, 6]],
 
-    #T Shape
+    # T Shape
     [[7, 7, 7],
-    [0, 7, 0]]
+     [0, 7, 0]]
 ]
 
+
 def rotate(shape):
-    # Rotate the shape matrix 90 degrees clockwise
-    return [[shape[y][x] for y in range(len(shape))] for x in range(len(shape[0]) - 1, -1, -1)]
+    """Rotate the shape matrix 90 degrees clockwise."""
+    return [list(row) for row in zip(*shape[::-1])]
+
 
 def check_collision(board, shape, offset):
-    # Check if the given shape will collide with the board 
-    # or the currently placed pieces. Offset is a tuple of coordinates in the (x, y) form
-
+    """Check if the given shape will collide with the board."""
     x_off, y_off = offset
-    for y_cell, row in enumerate(shape): #for each row of the board
-        for x_cell, cell in enumerate(row): #for each column of the row (cell)
-            if cell and board[y_cell + y_off][x_cell + x_off]:
-                return True #if the cell and the board are colliding
-    return False #if the cell and the board are not colliding
+    for y, row in enumerate(shape):
+        for x, cell in enumerate(row):
+            if cell and (y + y_off >= ROWS or x + x_off < 0 or x + x_off >= COLUMNS or board[y + y_off][x + x_off]):
+                return True
+    return False
+
 
 def clear_row(board, row):
-    # Remove the row from the board
+    """Remove the specified row from the board and add a new empty row at the top."""
     del board[row]
-    # Replace deleted row with a new one on top of the board
     return [[0 for _ in range(COLUMNS)]] + board
 
-def join_shapes(shape_a, shape_b, offset):
-    # Join matrixes of two shapes at the given offset
+
+def join_shapes(board, shape, offset):
+    """Merge the shape into the board at the given offset."""
     x_off, y_off = offset
-    for y_cell, row in enumerate(shape_b):
-        for x_cell, cell in enumerate(row):
-            shape_a[y_cell + y_off - 1][x_cell + x_off] += cell # Add a new piece to the board
-    return shape_a #return fused shapes
-    
-def new_board():
-    # Create the game board, the grid is made of 0s in empty slots
-    # and 1s at the bottom for a faster collision check
-    board = [[0 for x in range(COLUMNS)] for y in range(ROWS)]
-    # add the bottom line of 1s to the board
-    board += [[1 for x in range(COLUMNS)]]
+    for y, row in enumerate(shape):
+        for x, cell in enumerate(row):
+            if cell:
+                board[y + y_off][x + x_off] = cell
     return board
 
-def get_high_score(filename):
-    # Read high score from file high_score.txt
-    with open(filename, 'r') as f:
-        return int(f.read())
 
-def texture():
+def create_new_board():
+    """Create a new game board with an empty grid."""
+    board = [[0 for _ in range(COLUMNS)] for _ in range(ROWS)]
+    board.append([1 for _ in range(COLUMNS)])  # Bottom boundary
+    return board
+
+
+def get_high_score(filename):
+    """Retrieve the high score from a file."""
+    try:
+        with open(filename, 'r') as f:
+            return int(f.read())
+    except (FileNotFoundError, ValueError):
+        return 0
+
+
+def create_textures():
+    """Generate a list of textures based on the defined colors."""
     texture_list = []
-    # Create a list of images for sprites based on the global colors
-    for i in range(len(colors)):
-        sprite = PIL.Image.new('RGB', (WIDTH, HEIGHT), colors[i]) # create a new image
-        texture_list.append(arcade.Texture(str(colors[i]), sprite)) # add it to the list
+    for color in COLORS:
+        image = Image.new('RGB', (CELL_WIDTH, CELL_HEIGHT), color)
+        texture = arcade.Texture(str(color), image)
+        texture_list.append(texture)
     return texture_list
 
-texture_list = texture() # create a list of textures
 
-import random as rand #used to generate random choices
+TEXTURE_LIST = create_textures()
+
 
 class Tetris(arcade.Window):
-    # Define the main class for the game
+    """Main class for the Tetris game."""
+
     def __init__(self, width, height, title):
-        # Setup the application
-        super().__init__(width, height, title) # Call the parent class initializer
+        super().__init__(width, height, title)
+        arcade.set_background_color(arcade.color.BLACK)
 
-        arcade.set_background_color(arcade.color.BLACK) # Set the background color
-
-        self.board = None # Initialize the game board
-        self.frame_count = 0 # Initialize the frame count, used for animating the screen
-        self.score = 0  # Initialize the player score
-        self.high_score = get_high_score("save/high_score.txt") # Initialize the high score
-        self.player = None # Initialize the player name
-        self.game_over = False # Initialize the game over flag
-        self.paused = False # Initialize the pause flag
-        self.pause2 = True
+        # Initialize game state
+        self.board = None
+        self.frame_count = 0
+        self.score = 0
+        self.high_score = get_high_score("save/high_score.txt")
+        self.player = ""
+        self.game_over = False
+        self.paused = False
         self.begin = True
 
-        self.board_sprite_list = None # Initialize the board sprite list, used to animate tetraminos
+        self.board_sprite_list = arcade.SpriteList()
+        self.tetramino = None
+        self.x_tetramino = 0
+        self.y_tetramino = 0
 
-        self.tetramino = None # Initialize the falling tetramino
-        self.x_tetramino = 0 # horizontal position of the tetramino
-        self.y_tetramino = 0 # vertical position of the tetramino
+        self.load_logo()
+        self.initialize_mixer()
+        self.set_user()
+        self.set_mouse_visible(False)
 
-        self.set_user() # Set the user name
-        self.set_mouse_visible(False) # Initialize the mouse visibility
+    def load_logo(self):
+        """Load the game logo texture."""
+        self.logo_texture = arcade.load_texture("logo.png")
+
+    def initialize_mixer(self):
+        """Initialize the music mixer."""
+        mixer.init()
+        mixer.music.set_volume(0.5)
+
+    def set_user(self):
+        """Prompt the user to enter their name."""
+        self.player = input('Type your name: ')
+
+    def setup(self):
+        """Set up the game state."""
+        self.board = create_new_board()
+        mixer.music.load('music/level_music.mp3')
+        mixer.music.play(-1)
+
+        # Create sprites for the board
+        for row in range(len(self.board)):
+            for column in range(len(self.board[0])):
+                sprite = arcade.Sprite()
+                sprite.append_texture(TEXTURE_LIST[self.board[row][column]])
+                sprite.set_texture(0)
+                sprite.center_x = (MARGIN + CELL_WIDTH) * column + CELL_WIDTH // 2 + MARGIN
+                sprite.center_y = SCREEN_HEIGHT - (MARGIN + CELL_HEIGHT) * row - CELL_HEIGHT // 2 - MARGIN
+                self.board_sprite_list.append(sprite)
+
+        self.new_tetramino()
+        self.update_board()
 
     def new_tetramino(self):
-        # Randomly create a new tetramino,
-        # if we immediately collide at the top of the screen is game-over
-        
-        self.tetramino = rand.choice(shapes) # choose a random shape
-
-        self.x_tetramino = int(COLUMNS / 2) - int(len(self.tetramino[0]) / 2)
-        self.y_tetramino = -20
+        """Create a new tetramino and check for game over."""
+        self.tetramino = random.choice(SHAPES)
+        self.x_tetramino = COLUMNS // 2 - len(self.tetramino[0]) // 2
+        self.y_tetramino = 0
 
         if check_collision(self.board, self.tetramino, (self.x_tetramino, self.y_tetramino)):
             self.game_over = True
-            if(self.score > self.high_score):
-                mixer.music.stop() # stop the music
+            mixer.music.stop()
+            if self.score > self.high_score:
                 mixer.music.load('music/high_score.mp3')
-                mixer.music.play() # play the music
-                # If the score is higher than the high score, save it
                 self.high_score = self.score
-                with open("save/high_score.txt", "w") as f:
-                    # Write the high score to the file
-                    f.write(str(self.high_score) + "\t\t" + str(self.player))
+                self.save_high_score()
             else:
-                mixer.music.stop() # stop the music
                 mixer.music.load('music/game_over.mp3')
-                mixer.music.play() # play the music
-                # If the score is lower than the high score, save it in a different file
-                with open("save/scores.txt", "a") as f:
-                    # Write the high score to the file
-                    f.write(str(self.score) + "\t\t" + str(self.player) + "\n")
-            self.set_mouse_visible(True) # make the mouse visible
+                self.save_score()
+            mixer.music.play()
+            self.set_mouse_visible(True)
 
-    def set_user(self):
-        # Set the user name
-        name = input('Type your name:')
-        self.player = name
+    def save_high_score(self):
+        """Save the new high score to the file."""
+        with open("save/high_score.txt", "w") as f:
+            f.write(f"{self.high_score}\t\t{self.player}")
 
-    def setup(self):
-        self.board = new_board() # Create a new board
-
-        # start music engine and play the music
-        mixer.music.load('music/level_music.mp3') # Load the music
-        mixer.music.play(-1) # Play the music in loop
-
-        self.board_sprite_list = arcade.SpriteList() # Create a new sprite list for the board
-        for row in range(len(self.board)):
-            for column in range(len(self.board[0])):
-                sprite = arcade.Sprite() 
-                # Associate texture to sprite
-                for texture in texture_list:
-                    sprite.append_texture(texture)
-                sprite.set_texture(0)
-                sprite.center_x = (MARGIN + WIDTH) * column + WIDTH // 2 + MARGIN
-                sprite.center_y = SCREEN_H - (MARGIN + HEIGHT) * row + HEIGHT // 2 + MARGIN
-                
-                self.board_sprite_list.append(sprite)
-        if self.begin:
-            self.start()
-        self.new_tetramino() # Create a new tetramino
-        self.update_board() # Update the board
+    def save_score(self):
+        """Append the current score to the scores file."""
+        with open("save/scores.txt", "a") as f:
+            f.write(f"{self.score}\t\t{self.player}\n")
 
     def drop(self):
-        # Drop the tetramino one place down,
-        # then check for collisions
-        if self.game_over == False and self.paused == False and not self.begin:
-            self.y_tetramino += 1 #move the tetramino one row down
+        """Move the tetramino one row down and handle collisions."""
+        if not self.game_over and not self.paused and not self.begin:
+            self.y_tetramino += 1
             if check_collision(self.board, self.tetramino, (self.x_tetramino, self.y_tetramino)):
+                self.y_tetramino -= 1
                 self.board = join_shapes(self.board, self.tetramino, (self.x_tetramino, self.y_tetramino))
-                while True:
-                    # Check for rows to clear
-                    for _, row in enumerate(self.board[:-1]):
-                        if 0 not in row:
-                            self.score += 10
-                            self.board = clear_row(self.board, _)
-                            break
-                    else:
-                        break
-                self.update_board() # Update the board
-                self.new_tetramino() # Create a new tetramino
-    
-    def pause(self):
+                self.clear_full_rows()
+                self.update_board()
+                self.new_tetramino()
+
+    def clear_full_rows(self):
+        """Check and clear any full rows on the board."""
+        rows_cleared = 0
+        for row_index in range(len(self.board) - 1):
+            if all(cell != 0 for cell in self.board[row_index]):
+                self.board = clear_row(self.board, row_index)
+                self.score += 10
+                rows_cleared += 1
+        if rows_cleared > 0:
+            mixer.music.play()
+
+    def pause_game(self):
+        """Toggle the paused state of the game."""
         self.paused = not self.paused
-        if self.paused == True:
+        if self.paused:
             mixer.music.pause()
-        elif self.paused == False:
+        else:
             mixer.music.unpause()
 
-    def start(self):
-        self.pause2 =  self.pause2
-        # if self.pause2:
-        #     mixer.music.pause()
-        # else:
-        #     mixer.music.unpause()
-
     def rotate_tetramino(self):
-        if self.game_over == False and self.paused == False:
-            new_tetramino = rotate(self.tetramino)
-            # Check for collision, if place is free then rotate
-            if not check_collision(self.board, new_tetramino, (self.x_tetramino, self.y_tetramino)):
-                self.tetramino = new_tetramino
+        """Rotate the current tetramino if possible."""
+        if not self.game_over and not self.paused:
+            new_shape = rotate(self.tetramino)
+            if not check_collision(self.board, new_shape, (self.x_tetramino, self.y_tetramino)):
+                self.tetramino = new_shape
 
-    def on_update(self, dt):
-        self.frame_count += 1
-        if self.frame_count % 11 == 0: #move a piece down every 10 frames
-            self.drop()
+    def on_update(self, delta_time):
+        """Update the game state."""
+        if not self.paused and not self.game_over and not self.begin:
+            self.frame_count += 1
+            if self.frame_count % 11 == 0:
+                self.drop()
 
-    def move(self, delta):
-        # move the tetramino horizzontally
-        if self.game_over == False and self.paused == False:
-            new_pos = self.x_tetramino + delta
-            # check if the tetramino is moved outside from the game board
-            if new_pos < 0:
-                new_pos = 0
-            if new_pos > COLUMNS - len(self.tetramino[0]):
-                new_pos = COLUMNS - len(self.tetramino[0])
-            # check if the tetramino does collide, if not then move it
-            if not check_collision(self.board, self.tetramino, (new_pos, self.y_tetramino)):
-                self.x_tetramino = new_pos
+    def move_tetramino(self, delta_x):
+        """Move the tetramino horizontally."""
+        if not self.game_over and not self.paused:
+            new_x = self.x_tetramino + delta_x
+            new_x = max(0, min(new_x, COLUMNS - len(self.tetramino[0])))
+            if not check_collision(self.board, self.tetramino, (new_x, self.y_tetramino)):
+                self.x_tetramino = new_x
 
     def on_key_press(self, key, modifiers):
-        # Handle user interaction with the keyboard
-
+        """Handle key press events."""
         if self.begin:
             self.begin = False
+
         if key == arcade.key.LEFT:
-            self.move(-1)
+            self.move_tetramino(-1)
         elif key == arcade.key.RIGHT:
-            self.move(1)
+            self.move_tetramino(1)
         elif key == arcade.key.UP:
             self.rotate_tetramino()
         elif key == arcade.key.DOWN:
             self.drop()
         elif key == arcade.key.P:
-            self.pause()
+            self.pause_game()
         elif key == arcade.key.ESCAPE:
             self.close()
 
-        
-
-        
-
-    def draw_grid(self, grid, x_off, y_off):
-        # Draw the grid
-        for row in range(len(grid)):
-            for column in range(len(grid[0])):
-                if grid[row][column]:
-                    color = colors[grid[row][column]] # get the color of the block
-                    # Calculate the cell where to draw
-                    x = (MARGIN + WIDTH) * (column + x_off) + MARGIN + WIDTH // 2
-                    y = SCREEN_H - (MARGIN + HEIGHT) * (-row - y_off) + MARGIN + HEIGHT // 2
-
-                    arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color) # Draw the cell color
+    def draw_tetramino(self):
+        """Draw the current tetramino on the screen."""
+        for y, row in enumerate(self.tetramino):
+            for x, cell in enumerate(row):
+                if cell:
+                    color = COLORS[cell]
+                    pos_x = (MARGIN + CELL_WIDTH) * (self.x_tetramino + x) + MARGIN + CELL_WIDTH // 2
+                    pos_y = SCREEN_HEIGHT - (MARGIN + CELL_HEIGHT) * (self.y_tetramino + y) - CELL_HEIGHT // 2 - MARGIN
+                    arcade.draw_rectangle_filled(pos_x, pos_y, CELL_WIDTH, CELL_HEIGHT, color)
 
     def update_board(self):
-        # Update the sprite list to reflect the content of our game board
-        for row in range(len(self.board)): 
-            for column in range(len(self.board[0])): 
-                cell = self.board[-row][column]
+        """Update the sprite list to match the current board state."""
+        for row in range(ROWS):
+            for column in range(COLUMNS):
+                cell = self.board[row][column]
                 index = row * COLUMNS + column
-                
-                # Set the texture of the sprite
-                self.board_sprite_list[index].set_texture(cell) 
-    
+                self.board_sprite_list[index].set_texture(cell)
+
     def on_draw(self):
-        # Render the screen
-        arcade.start_render() # Initialize screen rendering before we start
+        """Render the screen."""
+        arcade.start_render()
         self.board_sprite_list.draw()
-        
-        arcade.draw_text(str(self.player)+"'s Score: "+ str(self.score), 0, SCREEN_H-700, arcade.color.WHITE, 20) # Draw score text
-        self.draw_grid(self.tetramino, self.x_tetramino, self.y_tetramino)
+        self.draw_tetramino()
+
+        # Display score
+        arcade.draw_text(f"{self.player}'s Score: {self.score}", 10, SCREEN_HEIGHT - 30,
+                         arcade.color.WHITE, 20)
+
         if self.game_over:
-            arcade.draw_text("Game Over!", 190, SCREEN_H-300, arcade.color.CYAN, 50) # Draw score text
-            arcade.draw_text("Press ESC to Exit", 90, SCREEN_H-400, arcade.color.CYAN, 50) # Draw score text
+            arcade.draw_text("Game Over!", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2,
+                             arcade.color.CYAN, 50, anchor_x="center")
+            arcade.draw_text("Press ESC to Exit", SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 60,
+                             arcade.color.CYAN, 30, anchor_x="center")
 
         if self.begin:
-            
-          
+            arcade.draw_texture_rectangle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 500, 300,
+                                          self.logo_texture, 0)
+            arcade.draw_text("PRESS ANY BUTTON", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 150,
+                             arcade.color.CYAN, 30, anchor_x="center")
 
-            # Draw some text using your custom font
-            arcade.draw_texture_rectangle(SCREEN_W/2+10,550, 500, 300, image, 0)
-            arcade.draw_text("PRESS ANY BUTTON", 150, SCREEN_H-350, arcade.color.CYAN, 30) # Draw score text
+    def main_menu(self):
+        """Display the main menu (if needed)."""
+        pass  # Placeholder for any main menu logic
 
 
 def main():
-    # main function
-    game = Tetris(SCREEN_W, SCREEN_H, SCREEN_TITLE)
-    game.setup() # Setup the game
-    arcade.run() # Run the game
+    """Main function to start the game."""
+    game = Tetris(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    game.setup()
+    arcade.run()
+
 
 if __name__ == "__main__":
     main()
