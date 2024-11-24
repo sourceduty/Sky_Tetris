@@ -1,4 +1,4 @@
-ℹ️ This software is free and open-source; anyone can redistribute it and/or modify it.
+# ℹ️ This software is free and open-source; anyone can redistribute it and/or modify it.
 
 import PIL #used to create textures for the game
 import arcade #used to create the game
